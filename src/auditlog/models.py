@@ -131,13 +131,7 @@ class LogEntryManager(models.Manager):
         :type instance: Model
         :return: The primary key value of the given model instance.
         """
-        pk_field = instance._meta.pk.name
-        pk = getattr(instance, pk_field, None)
-
-        # Check to make sure that we got an pk not a model object.
-        if isinstance(pk, models.Model):
-            pk = self._get_pk_value(pk)
-        return pk
+        return instance.pk
 
 
 @python_2_unicode_compatible
