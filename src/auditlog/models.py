@@ -62,8 +62,7 @@ class LogEntryManager(models.Manager):
         """
         Get the primary key field value for a model instance.
         """
-        pk_field = instance._meta.pk.name
-        return getattr(instance, pk_field, None)
+        return instance.pk
 
 
 class LogEntry(models.Model):
