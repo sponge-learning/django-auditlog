@@ -50,13 +50,6 @@ class LogEntryManager(models.Manager):
             if callable(get_additional_data):
                 kwargs.setdefault('additional_data', get_additional_data())
 
-            # Delete log entries with the same pk as a newly created model. This should only be necessary when an pk is
-            # used twice.
-            if kwargs.get('action', None) is LogEntry.Action.CREATE:
-                if kwargs.get('object_id', None) is not None and self.filter(content_type=kwargs.get('content_type'), object_id=kwargs.get('object_id')).exists():
-                    self.filter(content_type=kwargs.get('content_type'), object_id=kwargs.get('object_id')).delete()
-                else:
-                    self.filter(content_type=kwargs.get('content_type'), object_pk=kwargs.get('object_pk', '')).delete()
             # save LogEntry to same database instance is using
             db = instance._state.db
             return self.create(**kwargs) if db is None or db == '' else self.using(db).create(**kwargs)
