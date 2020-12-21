@@ -1,8 +1,8 @@
 from django.db.models import Model
 
 
-def as_unicode(value):
-    if value:
+def to_unicode(value):
+    if isinstance(value, basestring):
         value = value.decode('utf-8')
     return unicode(value)
 
@@ -28,8 +28,8 @@ def model_instance_diff(old, new):
         fields = set()
 
     for field in fields:
-        old_value = as_unicode(getattr(old, field.name, None))
-        new_value = as_unicode(getattr(new, field.name, None))
+        old_value = to_unicode(getattr(old, field.name, None))
+        new_value = to_unicode(getattr(new, field.name, None))
 
         if old_value != new_value:
             diff[field.name] = (old_value, new_value)
