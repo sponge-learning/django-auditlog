@@ -2,7 +2,7 @@ from django.db.models import Model
 
 
 def to_unicode(value):
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         value = value.decode('utf-8')
     return unicode(value)
 
