@@ -1,5 +1,5 @@
 from django.db.models import Model
-
+from django.utils.encoding import smart_text
 
 def model_instance_diff(old, new):
     """
@@ -23,8 +23,8 @@ def model_instance_diff(old, new):
         fields = set()
 
     for field in fields:
-        old_value = unicode(getattr(old, field.name, None))
-        new_value = unicode(getattr(new, field.name, None))
+        old_value = smart_text(getattr(old, field.name, None))
+        new_value = smart_text(getattr(new, field.name, None))
 
         if old_value != new_value:
             diff[field.name] = (old_value, new_value)
