@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Model, NOT_PROVIDED, DateTimeField
+from django.db.models import NOT_PROVIDED, DateTimeField, JSONField, Model
 from django.utils import timezone
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 
 
 def track_field(field):
@@ -64,20 +64,23 @@ def get_field_value(obj, field):
     :return: The value of the field as a string.
     :rtype: str
     """
-    if isinstance(field, DateTimeField):
-        # DateTimeFields are timezone-aware, so we need to convert the field
-        # to its naive form before we can accuratly compare them for changes.
-        try:
+    try:
+        if isinstance(field, DateTimeField):
+            # DateTimeFields are timezone-aware, so we need to convert the field
+            # to its naive form before we can accurately compare them for changes.
             value = field.to_python(getattr(obj, field.name, None))
             if value is not None and settings.USE_TZ and not timezone.is_naive(value):
                 value = timezone.make_naive(value, timezone=timezone.utc)
-        except ObjectDoesNotExist:
-            value = field.default if field.default is not NOT_PROVIDED else None
-    else:
-        try:
-            value = smart_text(getattr(obj, field.name, None))
-        except ObjectDoesNotExist:
-            value = field.default if field.default is not NOT_PROVIDED else None
+        elif isinstance(field, JSONField):
+            value = field.to_python(getattr(obj, field.name, None))
+        else:
+            value = smart_str(getattr(obj, field.name, None))
+    except ObjectDoesNotExist:
+        value = (
+            field.default
+            if getattr(field, "default", NOT_PROVIDED) is not NOT_PROVIDED
+            else None
+        )
 
     return value
 
