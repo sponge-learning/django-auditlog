@@ -84,7 +84,7 @@ class LogEntry(models.Model):
             (DELETE, _("delete")),
         )
 
-    content_type = models.ForeignKey('contenttypes.ContentType', on_delete=models.CASCADE, related_name='+', verbose_name=_("content type"))
+    content_type = models.ForeignKey('contenttypes.ContentType', on_delete=models.CASCADE, related_name='+', verbose_name=_("content type"), db_constraint=False)
     object_pk = models.TextField(verbose_name=_("object pk"))
     object_id = models.PositiveIntegerField(blank=True, db_index=True, null=True, verbose_name=_("object id"))
     object_repr = models.TextField(verbose_name=_("object representation"))
