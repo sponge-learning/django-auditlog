@@ -1,15 +1,28 @@
+from __future__ import unicode_literals
+
+import threading
 import time
 import threading
 
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.utils.functional import curry
-from django.db.models.loading import get_model
+from django.apps import apps
 from auditlog.models import LogEntry
+from auditlog.compat import is_authenticated
+
+# Use MiddlewareMixin when present (Django >= 1.10)
+try:
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 
 threadlocal = threading.local()
 
-class AuditlogMiddleware(object):
+threadlocal = threading.local()
+
+class AuditlogMiddleware(MiddlewareMixin):
     """
     Middleware to couple the request's user to log items. This is accomplished by currying the signal receiver with the
     user from the request (or None if the user is not authenticated).
@@ -22,10 +35,16 @@ class AuditlogMiddleware(object):
         """
         # Initialize thread local storage
         threadlocal.auditlog = {
-            'signal_duid': (self.__class__, time.time())
+            'signal_duid': (self.__class__, time.time()),
+            'remote_addr': request.META.get('REMOTE_ADDR'),
         }
 
-        if hasattr(request, 'user') and hasattr(request.user, 'is_authenticated') and request.user.is_authenticated():
+        # In case of proxy, set 'original' address
+        if request.META.get('HTTP_X_FORWARDED_FOR'):
+            threadlocal.auditlog['remote_addr'] = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
+
+        # Connect signal for automatic logging
+        if hasattr(request, 'user') and is_authenticated(request.user):
             set_actor = curry(self.set_actor, user=request.user, signal_duid=threadlocal.auditlog['signal_duid'])
             pre_save.connect(set_actor, sender=LogEntry, dispatch_uid=threadlocal.auditlog['signal_duid'], weak=False)
 
@@ -52,12 +71,15 @@ class AuditlogMiddleware(object):
         Signal receiver with an extra, required 'user' kwarg. This method becomes a real (valid) signal receiver when
         it is curried with the actor.
         """
-        if signal_duid != threadlocal.auditlog['signal_duid']:
-            return
-        try:
-            app_label, model_name = settings.AUTH_USER_MODEL.split('.')
-            auth_user_model = get_model(app_label, model_name)
-        except ValueError:
-            auth_user_model = get_model('auth', 'user')
-        if sender == LogEntry and isinstance(user, auth_user_model) and instance.actor is None:
-            instance.actor = user
+        if hasattr(threadlocal, 'auditlog'):
+            if signal_duid != threadlocal.auditlog['signal_duid']:
+                return
+            try:
+                app_label, model_name = settings.AUTH_USER_MODEL.split('.')
+                auth_user_model = apps.get_model(app_label, model_name)
+            except ValueError:
+                auth_user_model = apps.get_model('auth', 'user')
+            if sender == LogEntry and isinstance(user, auth_user_model) and instance.actor is None:
+                instance.actor = user
+
+            instance.remote_addr = threadlocal.auditlog['remote_addr']
