@@ -2,9 +2,17 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import NOT_PROVIDED, DateTimeField, JSONField, Model
+from django.db.models import NOT_PROVIDED, DateTimeField, Model
+from jsonfield import JSONField
 from django.utils import timezone
 from django.utils.encoding import smart_str
+
+import django
+if django.VERSION >= (1, 9, 0):
+    raise Exception("""
+        We should now be able to use the builtin JSONField, and bring this fork further in line with v0.4.8
+        Might be able to just revert the last commit?
+    """)
 
 
 def track_field(field):
