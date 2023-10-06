@@ -66,7 +66,11 @@ def get_field_value(obj, field):
             if value is not None and settings.USE_TZ and not timezone.is_naive(value):
                 value = timezone.make_naive(value, timezone=timezone.utc)
         except ObjectDoesNotExist:
-            value = field.default if field.default is not NOT_PROVIDED else None
+            value = (
+                field.default
+                if getattr(field, "default", NOT_PROVIDED) is not NOT_PROVIDED
+                else None
+            )
     else:
         try:
             value = smart_str(getattr(obj, field.name, None))
